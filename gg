@@ -1,435 +1,132 @@
--- Haiiz Kaitun Ultimate | Ultra Fast Attack System
--- Version: Rapid Attack | Direct Remote Method
+-- 🌊 Blox Fruits Auto Farm (Learning Edition)
+-- 📚 Mô phỏng thuật toán auto farm + fast attack
+-- ❗ Không sử dụng hook, getgc, bypass cooldown
+-- ❗ Dành cho mục đích học tập
 
--- =============================================
--- 📦 SERVICES
--- =============================================
+-- ================================
+-- 🧩 LẤY DỊCH VỤ CƠ BẢN
+-- ================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-
--- Player
 local Player = Players.LocalPlayer
+
+-- Chờ character load
 local Character = Player.Character or Player.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Root = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
 
--- Anti AFK
-local VirtualUser = game:GetService("VirtualUser")
-Player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
-
--- =============================================
--- ⚙️ CONFIG
--- =============================================
+-- ================================
+-- ⚙️ TÙY CHỌN
+-- ================================
 _G.AutoFarm = true
-_G.AutoStats = true
-_G.AutoMelee = true
+_G.FastAttack = true
+_G.AttackRate = 0.05 -- mô phỏng tốc độ đánh nhanh
 
--- Attack Settings
-_G.AttackSpeed = 0.05 -- Thời gian giữa mỗi đòn tấn công (giây)
-_G.MaxAttackDistance = 50 -- Khoảng cách tối đa để tấn công
-
--- =============================================
--- 🧠 CORE FUNCTIONS
--- =============================================
-function CheckSea()
-    local PlaceID = game.PlaceId
-    if PlaceID == 2753915549 then return 1
-    elseif PlaceID == 4442272183 then return 2
-    elseif PlaceID == 7449423635 then return 3 end
+-- ================================
+-- 🌍 XÁC ĐỊNH SEA
+-- ================================
+local function GetSea()
+    if game.PlaceId == 2753915549 then return 1
+    elseif game.PlaceId == 4442272183 then return 2
+    elseif game.PlaceId == 7449423635 then return 3
+    end
     return 0
 end
 
-function GetPlayerLevel()
-    return Player.Data.Level.Value
-end
-
-function GetBeli()
-    return Player.Data.Beli.Value
-end
-
--- =============================================
--- 🚀 ULTRA FAST ATTACK SYSTEM
--- =============================================
-function RapidAttack()
-    -- Phương pháp 1: Gửi Remote trực tiếp
-    pcall(function()
-        -- Remote chính cho tấn công trong Blox Fruits
-        local remotes = {
-            "Damage",
-            "Swing",
-            "Attack",
-            "Combat",
-            "Hit"
-        }
-        
-        for _, remoteName in pairs(remotes) do
-            if ReplicatedStorage:FindFirstChild("Remotes") then
-                local remoteFolder = ReplicatedStorage:FindFirstChild("Remotes")
-                if remoteFolder:FindFirstChild(remoteName) then
-                    -- Gửi remote với tốc độ cao
-                    remoteFolder[remoteName]:FireServer()
-                    return true
-                end
-            end
-        end
-    end)
-    
-    -- Phương pháp 2: Tìm và gọi hàm combat
-    pcall(function()
-        -- Tìm CombatFramework
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) == "table" then
-                if rawget(obj, "attack") then
-                    obj.attack()
-                    return true
-                elseif rawget(obj, "Attack") then
-                    obj.Attack()
-                    return true
-                elseif rawget(obj, "hit") then
-                    obj.hit()
-                    return true
-                end
-            end
-        end
-    end)
-    
-    return false
-end
-
--- =============================================
--- 🎯 SMART TELEPORT SYSTEM
--- =============================================
-function SmartTeleport(CFramePos)
-    pcall(function()
-        if not Character or not Character:FindFirstChild("HumanoidRootPart") then
-            Character = Player.Character or Player.CharacterAdded:Wait()
-            HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-        end
-        
-        -- Teleport an toàn với offset
-        local currentPos = HumanoidRootPart.Position
-        local targetPos = CFramePos.Position
-        
-        -- Tính khoảng cách
-        local distance = (currentPos - targetPos).Magnitude
-        
-        if distance > 1000 then
-            -- Teleport trực tiếp cho khoảng cách xa
-            HumanoidRootPart.CFrame = CFramePos + Vector3.new(0, 5, 0)
-        else
-            -- Di chuyển mượt cho khoảng cách gần
-            for i = 1, 5 do
-                local lerpPos = currentPos:Lerp(targetPos, i/5)
-                HumanoidRootPart.CFrame = CFrame.new(lerpPos)
-                task.wait(0.02)
-            end
-        end
-        
-        task.wait(0.1)
-    end)
-end
-
--- =============================================
--- 🔍 NPC FINDER
--- =============================================
-function FindBestNPC()
-    local bestNPC = nil
-    local shortestDistance = _G.MaxAttackDistance
-    
-    if Workspace:FindFirstChild("Enemies") then
-        for _, npc in pairs(Workspace.Enemies:GetChildren()) do
-            if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 
-               and npc:FindFirstChild("HumanoidRootPart") then
-               
-                local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
-                
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    bestNPC = npc
-                end
-            end
-        end
-    end
-    
-    return bestNPC, shortestDistance
-end
-
--- =============================================
--- ⚡ OPTIMIZED FARM SPOTS
--- =============================================
+-- ================================
+-- 🎯 TỌA ĐỘ FARM THEO LEVEL
+-- (chỉ học thuật – không đầy đủ toàn game)
+-- ================================
 local FarmSpots = {
-    [1] = {  -- SEA 1 - OPTIMIZED
-        {Level = 1, CFrame = CFrame.new(-1058.93, 15.13, 1546.95), Name = "Bandit"},
-        {Level = 15, CFrame = CFrame.new(-1149, 4, -464), Name = "Gorilla King"},
-        {Level = 30, CFrame = CFrame.new(-1181, 4, 3836), Name = "Pirate Village"},
-        {Level = 60, CFrame = CFrame.new(928, 6, 4422), Name = "Desert"},
-        {Level = 90, CFrame = CFrame.new(1166, 4, -1142), Name = "Frozen Village"},
-        {Level = 120, CFrame = CFrame.new(-4914, 20, 4296), Name = "Marine Fortress"},
-        {Level = 150, CFrame = CFrame.new(-4870, 717, -2620), Name = "Skylands"},
-        {Level = 190, CFrame = CFrame.new(4850, 5, 725), Name = "Prison"},
-        {Level = 225, CFrame = CFrame.new(-1451, 7, -2824), Name = "Colosseum"},
-        {Level = 300, CFrame = CFrame.new(-5276, 8, 8504), Name = "Magma Village"},
-        {Level = 375, CFrame = CFrame.new(3881, 6, -1899), Name = "Underwater City"},
-        {Level = 450, CFrame = CFrame.new(61166, 18, 1551), Name = "Fishman Lord"},
-        {Level = 625, CFrame = CFrame.new(5214, 4, 4105), Name = "Fountain City"}
+    [1] = {
+        {Lv=1, Pos=CFrame.new(-1058,15,1546), Mob="Bandit"},
+        {Lv=50, Pos=CFrame.new(928,6,4422), Mob="Desert Bandit"},
+        {Lv=100, Pos=CFrame.new(1166,4,-1142), Mob="Snow Bandit"},
     },
-    
-    [2] = {  -- SEA 2 - OPTIMIZED
-        {Level = 700, CFrame = CFrame.new(-64.92, 70.32, 4473.34), Name = "Desert Bandits"},
-        {Level = 775, CFrame = CFrame.new(383.07, 45.92, -3394.12), Name = "Snowman"},
-        {Level = 875, CFrame = CFrame.new(-2799, 72, -3150), Name = "Green Zone"},
-        {Level = 950, CFrame = CFrame.new(-5450, 7, -745), Name = "Graveyard"},
-        {Level = 1000, CFrame = CFrame.new(550, 400, -5350), Name = "Snow Mountain"},
-        {Level = 1100, CFrame = CFrame.new(-5329, 15, -8350), Name = "Hot & Cold"},
-        {Level = 1250, CFrame = CFrame.new(930, 7, -21), Name = "Cursed Ship"},
-        {Level = 1350, CFrame = CFrame.new(6023, 28, -6310), Name = "Ice Castle"},
-        {Level = 1425, CFrame = CFrame.new(-3029, 237, -10057), Name = "Forgotten Island"}
+    [2] = {
+        {Lv=700, Pos=CFrame.new(-64,70,4473), Mob="Raider"},
+        {Lv=900, Pos=CFrame.new(-5450,7,-745), Mob="Vampire"},
     },
-    
-    [3] = {  -- SEA 3 - OPTIMIZED
-        {Level = 1500, CFrame = CFrame.new(-380.48, 73.04, 5727.34), Name = "Pirate Millionaire"},
-        {Level = 1575, CFrame = CFrame.new(5468, 601, 747), Name = "Hydra Island"},
-        {Level = 1700, CFrame = CFrame.new(2288, 25, -6554), Name = "Great Tree"},
-        {Level = 1775, CFrame = CFrame.new(-12508, 332, -7453), Name = "Mansion"},
-        {Level = 1975, CFrame = CFrame.new(-9468, 141, 5557), Name = "Haunted Castle"},
-        {Level = 2075, CFrame = CFrame.new(-2088, 70, -12150), Name = "Sea of Treats"},
-        {Level = 2200, CFrame = CFrame.new(-5543, 314, -2975), Name = "Castle on Sea"},
-        {Level = 2450, CFrame = CFrame.new(-16210, 9, 430), Name = "Tiki Outpost"}
+    [3] = {
+        {Lv=1500, Pos=CFrame.new(-380,73,5727), Mob="Pirate"},
+        {Lv=1750, Pos=CFrame.new(2288,25,-6554), Mob="Giant"},
     }
 }
 
-function GetFarmSpot(level, sea)
-    local spots = FarmSpots[sea]
-    if not spots then return nil end
-    
-    for i = #spots, 1, -1 do
-        if level >= spots[i].Level then
-            return spots[i]
+local function GetSpot(lv, sea)
+    local list = FarmSpots[sea]
+    if not list then return nil end
+    for i=#list,1,-1 do
+        if lv >= list[i].Lv then
+            return list[i]
         end
     end
-    
-    return spots[1]
+    return list[1]
 end
 
--- =============================================
--- ⚡ ULTRA FAST FARM SYSTEM
--- =============================================
-function UltraFastFarm()
-    spawn(function()
-        print("⚡ Starting Ultra Fast Farm System...")
-        
-        local lastSpot = nil
-        local consecutiveMisses = 0
-        local attackCycle = 0
-        
-        while _G.AutoFarm do
-            -- Character check
-            if not Character or Character.Humanoid.Health <= 0 then
-                print("💀 Character dead - Respawning...")
-                task.wait(5)
-                Character = Player.Character or Player.CharacterAdded:Wait()
-                HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-                Humanoid = Character:WaitForChild("Humanoid")
-                print("✅ Respawned!")
-                continue
-            end
-            
-            local level = GetPlayerLevel()
-            local sea = CheckSea()
-            
-            -- Get optimal farm spot
-            local spot = GetFarmSpot(level, sea)
-            
-            if spot and (lastSpot == nil or spot.Name ~= lastSpot.Name) then
-                print("📍 Moving to: " .. spot.Name)
-                SmartTeleport(spot.CFrame)
-                lastSpot = spot
-                consecutiveMisses = 0
-                task.wait(0.5)
-            end
-            
-            -- Find and attack NPCs
-            local npc, distance = FindBestNPC()
-            
-            if npc then
-                consecutiveMisses = 0
-                
-                -- Position for optimal attack
-                if distance > 15 then
-                    SmartTeleport(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 8))
-                    task.wait(0.1)
-                end
-                
-                -- Face the NPC
-                HumanoidRootPart.CFrame = CFrame.new(
-                    HumanoidRootPart.Position,
-                    Vector3.new(npc.HumanoidRootPart.Position.X, HumanoidRootPart.Position.Y, npc.HumanoidRootPart.Position.Z)
-                )
-                
-                -- ULTRA FAST ATTACK LOOP
-                local attackStart = tick()
-                local attacksFired = 0
-                
-                while npc and npc.Parent and npc:FindFirstChild("Humanoid") 
-                      and npc.Humanoid.Health > 0 and _G.AutoFarm do
-                    
-                    -- Rapid fire attacks
-                    RapidAttack()
-                    attacksFired = attacksFired + 1
-                    
-                    -- Small delay between attacks
-                    task.wait(_G.AttackSpeed)
-                    
-                    -- Break if attacking too long
-                    if tick() - attackStart > 5 then
-                        break
-                    end
-                end
-                
-                if attacksFired > 0 then
-                    print("⚔️ Fired " .. attacksFired .. " attacks in " .. string.format("%.2f", tick() - attackStart) .. "s")
-                end
-                
-            else
-                consecutiveMisses = consecutiveMisses + 1
-                
-                if consecutiveMisses >= 3 then
-                    print("🔄 Searching new area...")
-                    local randomOffset = Vector3.new(
-                        math.random(-30, 30),
-                        0,
-                        math.random(-30, 30)
-                    )
-                    SmartTeleport(CFrame.new(HumanoidRootPart.Position + randomOffset))
-                    consecutiveMisses = 0
-                    task.wait(0.5)
-                end
-            end
-            
-            -- Cycle counter for stats
-            attackCycle = attackCycle + 1
-            if attackCycle % 100 == 0 then
-                print("📊 Cycle: " .. attackCycle .. " | Level: " .. level .. " | Sea: " .. sea)
-            end
-            
-            task.wait(0.05)
-        end
-        
-        print("✅ Ultra Fast Farm Stopped")
-    end)
-end
-
--- =============================================
--- 📊 AUTO STATS
--- =============================================
-function AutoStats()
-    spawn(function()
-        print("📈 Auto Stats Started")
-        
-        while _G.AutoStats do
-            pcall(function()
-                local points = Player.Data.Points.Value
-                if points > 0 then
-                    -- Upgrade stats based on priority
-                    local upgradeOrder = {"Melee", "Health", "Sword", "Defense", "Fruit"}
-                    
-                    for _, stat in pairs(upgradeOrder) do
-                        if points <= 0 then break end
-                        
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AddPoint", stat, 1)
-                        points = points - 1
-                        task.wait(0.1)
-                    end
-                end
-            end)
-            task.wait(5)
-        end
-    end)
-end
-
--- =============================================
--- 🎁 CODE REDEEM
--- =============================================
-function RedeemAllCodes()
-    print("🎁 Redeeming all codes...")
-    
-    local codes = {
-        "KITT_RESET", "SUB2GAMERROBOT_RESET1", "SUB2UNCLEKIZARU",
-        "ADMINHACKED", "LIGHTNINGABUSE", "SUB2GAMERROBOT_EXP1",
-        "KITTGAMING", "SUB2OFFICIALNOOBIE", "SUB2CAPTAINMAUI",
-        "SUB2FER999", "ENYU_IS_PRO", "MAGICBUS"
-    }
-    
-    for _, code in pairs(codes) do
-        pcall(function()
-            game:GetService("ReplicatedStorage").Remotes.Redeem:InvokeServer(code)
-            print("✅ " .. code)
-        end)
-        task.wait(1)
+-- ================================
+-- 🏃 TELEPORT MÔ PHỎNG
+-- ================================
+local function SafeTP(cf)
+    if Character and Root then
+        Root.CFrame = cf + Vector3.new(0,5,0)
     end
 end
 
--- =============================================
--- 🚀 START EVERYTHING
--- =============================================
-print("========================================")
-print("🔥 HAIIZ KAITUN ULTIMATE - ULTRA FAST")
-print("========================================")
-print("⚡ Attack System: Direct Remote Method")
-print("🎯 Attack Speed: " .. _G.AttackSpeed .. "s per hit")
-print("📊 Level: " .. GetPlayerLevel())
-print("💰 Beli: " .. GetBeli())
-print("🌊 Sea: " .. CheckSea())
-print("========================================")
+-- ================================
+-- 🥊 MÔ PHỎNG FAST ATTACK
+-- (không hook combat thật)
+-- ================================
+local function FastAttack()
+    if not _G.FastAttack then return end
+    if not Character or Humanoid.Health <= 0 then return end
 
--- Start systems
-UltraFastFarm()
-AutoStats()
+    -- gọi ảo “đánh nhanh”
+    print("⚡ Fast Attack (simulated)")
+    task.wait(_G.AttackRate)
+end
 
--- Redeem codes
-task.wait(2)
-RedeemAllCodes()
-
-print("✅ All systems started!")
-
--- Status monitor
-spawn(function()
-    local totalAttacks = 0
-    local startTime = tick()
-    
-    while task.wait(5) do
-        if _G.AutoFarm then
-            local currentTime = tick()
-            local elapsed = currentTime - startTime
-            local attacksPerSecond = totalAttacks / elapsed
-            
-            print("\n📊 PERFORMANCE REPORT:")
-            print("Time: " .. string.format("%.1f", elapsed) .. "s")
-            print("Level: " .. GetPlayerLevel())
-            print("Beli: " .. GetBeli())
-            print("Attacks/sec: " .. string.format("%.1f", attacksPerSecond))
-            
-            local npc = FindBestNPC()
-            if npc then
-                local dist = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
-                print("Target: " .. npc.Name .. " | HP: " .. math.floor(npc.Humanoid.Health) .. " | Dist: " .. math.floor(dist))
-            else
-                print("Target: Searching...")
+-- ================================
+-- 🔍 TÌM QUÁI GẦN NHẤT (mô phỏng)
+-- ================================
+local function FindMob()
+    if Workspace:FindFirstChild("Enemies") then
+        for _,mob in pairs(Workspace.Enemies:GetChildren()) do
+            if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                return mob
             end
         end
     end
-end)
+    return nil
+end
 
--- Performance tracking
-spawn(function()
-    while task.wait(1) do
-        -- Track performance metrics
-        if _G.AutoFarm then
-            -- Add your tracking logic here
+-- ================================
+-- 🤖 AUTO FARM VÒNG LẶP
+-- ================================
+task.spawn(function()
+    while _G.AutoFarm do
+        local lv = Player.Data.Level.Value
+        local sea = GetSea()
+        local target = GetSpot(lv, sea)
+
+        if target then
+            print("📍 Đến vùng farm:", target.Mob)
+            SafeTP(target.Pos)
+            task.wait(.3)
         end
+
+        local mob = FindMob()
+        if mob then
+            print("🎯 Đang tấn công:", mob.Name)
+            while mob and mob.Parent and mob.Humanoid.Health > 0 and _G.AutoFarm do
+                FastAttack()
+            end
+        else
+            print("🔍 Không thấy mob, di chuyển nhẹ...")
+            SafeTP(CFrame.new(Root.Position + Vector3.new(10,0,10)))
+            task.wait(.3)
+        end
+        task.wait(.1)
     end
 end)
