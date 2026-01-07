@@ -1,132 +1,311 @@
--- 🌊 Blox Fruits Auto Farm (Learning Edition)
--- 📚 Mô phỏng thuật toán auto farm + fast attack
--- ❗ Không sử dụng hook, getgc, bypass cooldown
--- ❗ Dành cho mục đích học tập
+-- Ultra Fast Auto Click | 1000+ Clicks/Second
+-- Version: Extreme Speed
 
--- ================================
--- 🧩 LẤY DỊCH VỤ CƠ BẢN
--- ================================
+-- =============================================
+-- 📦 SERVICES
+-- =============================================
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+
+-- Player
 local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
 
--- Chờ character load
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Root = Character:WaitForChild("HumanoidRootPart")
-local Humanoid = Character:WaitForChild("Humanoid")
-
--- ================================
--- ⚙️ TÙY CHỌN
--- ================================
-_G.AutoFarm = true
-_G.FastAttack = true
-_G.AttackRate = 0.05 -- mô phỏng tốc độ đánh nhanh
-
--- ================================
--- 🌍 XÁC ĐỊNH SEA
--- ================================
-local function GetSea()
-    if game.PlaceId == 2753915549 then return 1
-    elseif game.PlaceId == 4442272183 then return 2
-    elseif game.PlaceId == 7449423635 then return 3
-    end
-    return 0
-end
-
--- ================================
--- 🎯 TỌA ĐỘ FARM THEO LEVEL
--- (chỉ học thuật – không đầy đủ toàn game)
--- ================================
-local FarmSpots = {
-    [1] = {
-        {Lv=1, Pos=CFrame.new(-1058,15,1546), Mob="Bandit"},
-        {Lv=50, Pos=CFrame.new(928,6,4422), Mob="Desert Bandit"},
-        {Lv=100, Pos=CFrame.new(1166,4,-1142), Mob="Snow Bandit"},
-    },
-    [2] = {
-        {Lv=700, Pos=CFrame.new(-64,70,4473), Mob="Raider"},
-        {Lv=900, Pos=CFrame.new(-5450,7,-745), Mob="Vampire"},
-    },
-    [3] = {
-        {Lv=1500, Pos=CFrame.new(-380,73,5727), Mob="Pirate"},
-        {Lv=1750, Pos=CFrame.new(2288,25,-6554), Mob="Giant"},
-    }
+-- =============================================
+-- ⚙️ CONFIG - EXTREME SPEED
+-- =============================================
+local AutoClick = {
+    Enabled = false,
+    ClickSpeed = 0.001, -- 1000 clicks/second
+    MaxClicks = 0, -- 0 = unlimited
+    ClickCount = 0,
+    ClickPosition = Vector2.new(0, 0),
+    ClickMethod = "VirtualInput", -- "VirtualInput" or "FireAll"
+    Running = false
 }
 
-local function GetSpot(lv, sea)
-    local list = FarmSpots[sea]
-    if not list then return nil end
-    for i=#list,1,-1 do
-        if lv >= list[i].Lv then
-            return list[i]
+-- =============================================
+-- 🚀 EXTREME SPEED CLICK FUNCTIONS
+-- =============================================
+
+-- Method 1: Ultra Fast Virtual Input
+function UltraFastClick()
+    if not AutoClick.Enabled then return end
+    
+    local x, y = AutoClick.ClickPosition.X, AutoClick.ClickPosition.Y
+    
+    -- SUPER FAST: Press and release in same frame
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+    
+    AutoClick.ClickCount = AutoClick.ClickCount + 1
+end
+
+-- Method 2: Batch Clicks (Fastest)
+function BatchClicks(amount)
+    if not AutoClick.Enabled then return end
+    
+    local x, y = AutoClick.ClickPosition.X, AutoClick.ClickPosition.Y
+    
+    for i = 1, amount do
+        -- Even faster: minimal function calls
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+        
+        AutoClick.ClickCount = AutoClick.ClickCount + 1
+    end
+end
+
+-- Method 3: RunService Based (Most Efficient)
+function RunServiceClick()
+    if not AutoClick.Running then return end
+    
+    -- Use Heartbeat for consistent timing
+    local connection
+    local clicksPerFrame = 10 -- Clicks per Heartbeat frame
+    
+    connection = RunService.Heartbeat:Connect(function(deltaTime)
+        if not AutoClick.Running then
+            connection:Disconnect()
+            return
         end
-    end
-    return list[1]
-end
-
--- ================================
--- 🏃 TELEPORT MÔ PHỎNG
--- ================================
-local function SafeTP(cf)
-    if Character and Root then
-        Root.CFrame = cf + Vector3.new(0,5,0)
-    end
-end
-
--- ================================
--- 🥊 MÔ PHỎNG FAST ATTACK
--- (không hook combat thật)
--- ================================
-local function FastAttack()
-    if not _G.FastAttack then return end
-    if not Character or Humanoid.Health <= 0 then return end
-
-    -- gọi ảo “đánh nhanh”
-    print("⚡ Fast Attack (simulated)")
-    task.wait(_G.AttackRate)
-end
-
--- ================================
--- 🔍 TÌM QUÁI GẦN NHẤT (mô phỏng)
--- ================================
-local function FindMob()
-    if Workspace:FindFirstChild("Enemies") then
-        for _,mob in pairs(Workspace.Enemies:GetChildren()) do
-            if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                return mob
+        
+        local x, y = AutoClick.ClickPosition.X, AutoClick.ClickPosition.Y
+        
+        -- Multiple clicks per frame
+        for i = 1, clicksPerFrame do
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+            
+            AutoClick.ClickCount = AutoClick.ClickCount + 1
+            
+            -- Check max clicks
+            if AutoClick.MaxClicks > 0 and AutoClick.ClickCount >= AutoClick.MaxClicks then
+                AutoClick.Running = false
+                connection:Disconnect()
+                break
             end
         end
-    end
-    return nil
+    end)
 end
 
--- ================================
--- 🤖 AUTO FARM VÒNG LẶP
--- ================================
-task.spawn(function()
-    while _G.AutoFarm do
-        local lv = Player.Data.Level.Value
-        local sea = GetSea()
-        local target = GetSpot(lv, sea)
+-- =============================================
+-- 🎮 CONTROLS WITH TOGGLE
+-- =============================================
 
-        if target then
-            print("📍 Đến vùng farm:", target.Mob)
-            SafeTP(target.Pos)
-            task.wait(.3)
+-- Create GUI for toggle
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoClickGUI"
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0, 10, 0, 10)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Parent = ScreenGui
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 180, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Text = "🖱️ OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 16
+ToggleButton.Parent = Frame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 180, 0, 40)
+StatusLabel.Position = UDim2.new(0, 10, 0, 60)
+StatusLabel.Text = "Clicks: 0\nSpeed: 0.001s"
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 14
+StatusLabel.Parent = Frame
+
+-- Toggle Function
+ToggleButton.MouseButton1Click:Connect(function()
+    if AutoClick.Enabled then
+        StopAutoClick()
+    else
+        StartAutoClick()
+    end
+end)
+
+function UpdateUI()
+    if AutoClick.Enabled then
+        ToggleButton.Text = "🖱️ ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        ToggleButton.Text = "🖱️ OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+    
+    StatusLabel.Text = string.format("Clicks: %d\nSpeed: %.3fs", 
+        AutoClick.ClickCount, AutoClick.ClickSpeed)
+end
+
+-- =============================================
+-- 🔄 AUTO CLICK SYSTEM
+-- =============================================
+function StartAutoClick()
+    print("🚀 ULTRA FAST AUTO CLICK ACTIVATED!")
+    print("⚡ Speed: " .. AutoClick.ClickSpeed .. "s (1000+ clicks/sec)")
+    
+    AutoClick.Enabled = true
+    AutoClick.Running = true
+    AutoClick.ClickCount = 0
+    
+    -- Store current mouse position
+    AutoClick.ClickPosition = Vector2.new(Mouse.X, Mouse.Y)
+    
+    -- Update UI
+    UpdateUI()
+    
+    -- Method 1: Loop based (simpler)
+    task.spawn(function()
+        while AutoClick.Running do
+            -- Use batch clicks for efficiency
+            BatchClicks(10) -- 10 clicks per iteration
+            
+            -- Small delay (0.001s = 1000 clicks/sec theoretical)
+            task.wait(AutoClick.ClickSpeed)
+            
+            -- Update mouse position
+            AutoClick.ClickPosition = Vector2.new(Mouse.X, Mouse.Y)
         end
+    end)
+    
+    -- Method 2: RunService based (more efficient)
+    -- Uncomment for even faster clicking
+    -- RunServiceClick()
+end
 
-        local mob = FindMob()
-        if mob then
-            print("🎯 Đang tấn công:", mob.Name)
-            while mob and mob.Parent and mob.Humanoid.Health > 0 and _G.AutoFarm do
-                FastAttack()
-            end
+function StopAutoClick()
+    print("⏹️ Auto Click Stopped")
+    print("📊 Total Clicks: " .. AutoClick.ClickCount)
+    
+    AutoClick.Enabled = false
+    AutoClick.Running = false
+    
+    UpdateUI()
+end
+
+-- =============================================
+-- 🎛️ KEYBOARD CONTROLS
+-- =============================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- F8 to toggle
+    if input.KeyCode == Enum.KeyCode.F8 then
+        if AutoClick.Enabled then
+            StopAutoClick()
         else
-            print("🔍 Không thấy mob, di chuyển nhẹ...")
-            SafeTP(CFrame.new(Root.Position + Vector3.new(10,0,10)))
-            task.wait(.3)
+            StartAutoClick()
         end
-        task.wait(.1)
     end
+    
+    -- F9 for even faster (0.0005s)
+    if input.KeyCode == Enum.KeyCode.F9 then
+        AutoClick.ClickSpeed = 0.0005
+        print("⚡⚡⚡ ULTRA SPEED: " .. AutoClick.ClickSpeed .. "s (2000+ clicks/sec)")
+        StatusLabel.Text = string.format("Clicks: %d\nSpeed: %.4fs", 
+            AutoClick.ClickCount, AutoClick.ClickSpeed)
+    end
+    
+    -- F10 for normal speed
+    if input.KeyCode == Enum.KeyCode.F10 then
+        AutoClick.ClickSpeed = 0.001
+        print("⚡ Normal Speed: " .. AutoClick.ClickSpeed .. "s")
+        StatusLabel.Text = string.format("Clicks: %d\nSpeed: %.3fs", 
+            AutoClick.ClickCount, AutoClick.ClickSpeed)
+    end
+    
+    -- F11 for slower (for testing)
+    if input.KeyCode == Enum.KeyCode.F11 then
+        AutoClick.ClickSpeed = 0.01
+        print("🐢 Slow Speed: " .. AutoClick.ClickSpeed .. "s")
+        StatusLabel.Text = string.format("Clicks: %d\nSpeed: %.3fs", 
+            AutoClick.ClickCount, AutoClick.ClickSpeed)
+    end
+end)
+
+-- =============================================
+-- 📊 PERFORMANCE MONITOR
+-- =============================================
+local performanceStats = {
+    startTime = 0,
+    lastClicks = 0,
+    maxCPS = 0
+}
+
+function StartPerformanceMonitor()
+    performanceStats.startTime = tick()
+    performanceStats.lastClicks = AutoClick.ClickCount
+    
+    task.spawn(function()
+        while task.wait(1) do
+            if AutoClick.Enabled then
+                local currentTime = tick()
+                local elapsed = currentTime - performanceStats.startTime
+                local totalClicks = AutoClick.ClickCount
+                local clicksThisSecond = totalClicks - performanceStats.lastClicks
+                
+                -- Calculate CPS
+                local cps = clicksThisSecond
+                if cps > performanceStats.maxCPS then
+                    performanceStats.maxCPS = cps
+                end
+                
+                -- Print stats
+                print(string.format("📊 CPS: %d | Total: %d | Max: %d", 
+                    cps, totalClicks, performanceStats.maxCPS))
+                
+                -- Update for next second
+                performanceStats.lastClicks = totalClicks
+                performanceStats.startTime = currentTime
+                
+                -- Update UI with CPS
+                StatusLabel.Text = string.format("Clicks: %d\nSpeed: %.3fs\nCPS: %d", 
+                    AutoClick.ClickCount, AutoClick.ClickSpeed, cps)
+            end
+        end
+    end)
+end
+
+-- =============================================
+-- 🚀 INITIALIZATION
+-- =============================================
+print("========================================")
+print("⚡ ULTRA FAST AUTO CLICK")
+print("========================================")
+print("🎮 CONTROLS:")
+print("  F8  - Toggle Auto Click")
+print("  F9  - Ultra Speed (0.0005s)")
+print("  F10 - Normal Speed (0.001s)")
+print("  F11 - Slow Speed (0.01s)")
+print("🖱️ GUI: Click button to toggle")
+print("========================================")
+print("⚠️ WARNING: Extreme speed may cause lag")
+print("========================================")
+
+-- Initialize UI
+UpdateUI()
+
+-- Start performance monitor
+StartPerformanceMonitor()
+
+-- Mouse position tracking
+Mouse.Move:Connect(function()
+    if AutoClick.Enabled then
+        AutoClick.ClickPosition = Vector2.new(Mouse.X, Mouse.Y)
+    end
+end)
+
+-- Auto cleanup on player leave
+Player.CharacterRemoving:Connect(function()
+    StopAutoClick()
 end)
